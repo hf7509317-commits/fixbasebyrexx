@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REXX FIX BUILD — Fix Base APK Flutter</title>
+    <style>
+        /* ========================================
+           ROOT VARIABLES & RESET
+        ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #121828;
+            --bg-card: #1a1f35;
+            --bg-input: #0d1225;
+            --border-color: #2a2f4a;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #22d3ee;
+            --gradient-main: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            --gradient-glow: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+            --shadow-glow: 0 0 60px rgba(59, 130, 246, 0.15);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           SCROLLBAR
+        ======================================== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-purple);
+        }
+
+        /* ========================================
+           ANIMATIONS
+        ======================================== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .animate-fade {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        /* ========================================
+           GLOW ORB BACKGROUND
+        ======================================== */
+        .glow-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb.orb-1 {
+            width: 500px;
+            height: 500px;
+            top: -150px;
+            right: -150px;
+            background: rgba(59, 130, 246, 0.12);
+        }
+
+        .glow-orb.orb-2 {
+            width: 400px;
+            height: 400px;
+            bottom: -100px;
+            left: -100px;
+            background: rgba(139, 92, 246, 0.10);
+        }
+
+        .glow-orb.orb-3 {
+            width: 300px;
+            height: 300px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(34, 211, 238, 0.05);
+        }
+
+        /* ========================================
+           CONTAINER
+        ======================================== */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ========================================
+           NAVBAR
+        ======================================== */
+        .navbar {
+            padding: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 26, 0.8);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+        }
+
+        .navbar .logo {
+            font-size: 24px;
+            font-weight: 800;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar .logo span {
+            font-weight: 300;
+            -webkit-text-fill-color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .navbar .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .navbar .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: var(--transition);
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .navbar .nav-links a:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 211, 238, 0.1);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--accent-cyan);
+            border: 1px solid rgba(34, 211, 238, 0.15);
+        }
+
+        .status-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            animation: pulse 2s infinite;
+        }
+
+        /* ========================================
+           HERO SECTION
+        ======================================== */
+        .hero {
+            padding: 60px 0 40px;
+            text-align: center;
+        }
+
+        .hero .badge-top {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 800;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
+
+        .hero h1 .highlight {
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% 200%;
+            animation: gradientMove 4s ease infinite;
+        }
+
+        .hero .subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 8px;
+        }
+
+        .hero .sub-desc {
+            color: var(--text-muted);
+            font-size: 15px;
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+
+        /* ========================================
+           FEATURES GRID
+        ======================================== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 30px 0 50px;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-blue);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .feature-card .icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .feature-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ========================================
+           MAIN CARD (UPLOAD + LOG + CHAT)
+        ======================================== */
+        .main-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow-glow);
+            margin-bottom: 40px;
+        }
+
+        .main-card .step-label {
+            display: inline-block;
+            background: var(--gradient-main);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .main-card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .main-card .desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        /* ---------- UPLOAD AREA ---------- */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--bg-input);
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.04);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent-cyan);
+            background: rgba(34, 211, 238, 0.06);
+            transform: scale(1.01);
+        }
+
+        .upload-area .icon-upload {
+            font-size: 56px;
+            display: block;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+
+        .upload-area h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .upload-area p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .upload-area .browse-btn {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 10px 28px;
+            background: var(--gradient-main);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .upload-area .browse-btn:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3);
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            display: none;
+            margin-top: 16px;
+            padding: 12px 20px;
+            background: rgba(34, 211, 238, 0.08);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 10px;
+            color: var(--accent-cyan);
+            font-size: 14px;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .file-info.show {
+            display: flex;
+        }
+
+        .file-info .remove-file {
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+            font-size: 18px;
+        }
+
+        .file-info .remove-file:hover {
+            color: #ef4444;
+        }
+
+        /* ---------- LOG TEXTAREA ---------- */
+        .log-area {
+            margin-top: 24px;
+        }
+
+        .log-area label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .log-area textarea {
+            width: 100%;
+            min-height: 140px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            resize: vertical;
+            transition: var(--transition);
+            line-height: 1.7;
+        }
+
+        .log-area textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .log-area textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ---------- ACTION BUTTON ---------- */
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 24px;
+            background: var(--gradient-main);
+            border: none;
+            border-radius: var(--radius);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.3);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .action-btn .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .action-btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .action-btn.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ---------- CHAT AI SECTION ---------- */
+        .chat-section {
+            margin-top: 32px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 32px;
+        }
+
+        .chat-section .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .chat-section .chat-header .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .chat-section .chat-header .chat-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chat-section .chat-header .chat-title small {
+            display: block;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .chat-messages {
+            background: var(--bg-input);
+            border-radius: var(--radius);
+            padding: 20px;
+            min-height: 120px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-messages .message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .chat-messages .message .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .chat-messages .message .msg-bubble {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 12px;
+            border-top-left-radius: 4px;
+            max-width: 85%;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-messages .message .msg-bubble .highlight-code {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-cyan);
+            padding: 0 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .chat-messages .message.bot .msg-bubble {
+            border-top-left-radius: 4px;
+            border-top-right-radius: 12px;
+        }
+
+        .chat-messages .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .chat-messages .message.user .msg-bubble {
+            background: var(--gradient-main);
+            color: #fff;
+            border: none;
+            border-top-right-radius: 4px;
+            border-top-left-radius: 12px;
+        }
+
+        .chat-messages .message.user .msg-avatar {
+            background: var(--text-muted);
+        }
+
+        .chat-messages .typing-indicator {
+            display: none;
+            padding: 8px 16px;
+            color: var(--text-muted);
+            font-size: 14px;
+            gap: 4px;
+        }
+
+        .chat-messages .typing-indicator.show {
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-messages .typing-indicator .dot-typing {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            display: inline-block;
+            animation: pulse 1.4s infinite;
+        }
+
+        .chat-messages .typing-indicator .dot-typing:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .chat-messages .typing-indicator .dot-typing:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* ---------- BOTTOM INFO ---------- */
+        .bottom-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .bottom-info .bot-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .bottom-info .bot-link:hover {
+            color: var(--accent-cyan);
+        }
+
+        .bottom-info .bot-link .telegram-icon {
+            font-size: 24px;
+        }
+
+        .bottom-info .credit {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .bottom-info .credit a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .bottom-info .credit a:hover {
+            color: var(--accent-cyan);
+        }
+
+        /* ========================================
+           RESPONSIVE
+        ======================================== */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+            .hero .subtitle {
+                font-size: 17px;
+            }
+            .main-card {
+                padding: 24px;
+            }
+            .main-card h2 {
+                font-size: 19px;
+            }
+            .upload-area {
+                padding: 30px 16px;
+            }
+            .upload-area .icon-upload {
+                font-size: 40px;
+            }
+            .features-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .navbar .nav-links a {
+                font-size: 13px;
+                padding: 6px 12px;
+            }
+            .bottom-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .navbar {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            .navbar .logo {
+                font-size: 20px;
+            }
+            .status-badge {
+                font-size: 11px;
+                padding: 4px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========================================
+     GLOW ORBS
+======================================== -->
+<div class="glow-orb orb-1"></div>
+<div class="glow-orb orb-2"></div>
+<div class="glow-orb orb-3"></div>
+
+<!-- ========================================
+     NAVBAR
+======================================== -->
+<nav class="navbar">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:0 24px;">
+        <div class="logo">
+            REXX FIX BUILD <span>| Fix Base APK</span>
+        </div>
+        <div class="nav-links">
+            <a href="#">Beranda</a>
+            <a href="#">Cara Pakai</a>
+            <span class="status-badge">
+                <span class="dot"></span> Rexx AI Online
+            </span>
+        </div>
+    </div>
+</nav>
+
+<!-- ========================================
+     HERO
+======================================== -->
+<section class="hero">
+    <div class="container">
+        <div class="badge-top">⚡ Auto Fix Base APK Flutter</div>
+        <h1>
+            Base APK error? <br>
+            <span class="highlight">Beresin di sini.</span>
+        </h1>
+        <p class="subtitle">
+            Upload ZIP base APK kamu, tempel log error-nya,
+        </p>
+        <p class="sub-desc">
+            <strong>Rexx AI</strong> hanya memperbaiki error yang ada di log — tanpa menebak-nebak.
+            Hasilnya langsung berupa ZIP yang siap di-build.
+        </p>
+    </div>
+</section>
+
+<!-- ========================================
+     FEATURES
+======================================== -->
+<div class="container">
+    <div class="features-grid">
+        <div class="feature-card">
+            <span class="icon">📦</span>
+            <h4>Upload ZIP</h4>
+            <p>Base APK Flutter kamu</p>
+        </div>
+        <div class="feature-card">
+            <span class="icon">📋</span>
+            <h4>Tempel Log Error</h4>
+            <p>Rexx AI baca & analisis</p>
+        </div>
+        <div class="feature-card">
+            <span class="icon">🤖</span>
+            <h4>Rexx AI Perbaiki</h4>
+            <p>Hanya error di log</p>
+        </div>
+        <div class="feature-card">
+            <span class="icon">⬇️</span>
+            <h4>Download ZIP</h4>
+            <p>Siap build ulang</p>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================
+     MAIN CARD
+======================================== -->
+<div class="container">
+    <div class="main-card">
+
+        <!-- STEP 1: UPLOAD -->
+        <div class="step-label">STEP 1</div>
+        <h2>Upload ZIP base APK</h2>
+        <p class="desc">Upload file .zip dari base APK Flutter yang ingin diperbaiki.</p>
+
+        <div class="upload-area" id="uploadArea">
+            <span class="icon-upload">📤</span>
+            <h4>Tarik file .zip ke sini</h4>
+            <p>atau klik untuk memilih file</p>
+            <button class="browse-btn" id="browseBtn">Pilih File</button>
+            <input type="file" id="fileInput" accept=".zip">
+            <div class="file-info" id="fileInfo">
+                <span id="fileName">file.zip</span>
+                <span class="remove-file" id="removeFile">✕</span>
+            </div>
+        </div>
+
+        <!-- STEP 2: LOG -->
+        <div class="log-area">
+            <div class="step-label" style="margin-top:8px;">STEP 2</div>
+            <label for="logInput">Tempel log error</label>
+            <textarea id="logInput" placeholder="Tempel log error dari build APK di sini...&#10;Contoh:&#10;FAILURE: Build failed with an exception.&#10;* What went wrong:&#10;Execution failed for task ':app:compileDebugJavaWithJavac'."></textarea>
+        </div>
+
+        <!-- ACTION BUTTON -->
+        <button class="action-btn" id="fixBtn">
+            <span class="spinner"></span>
+            <span class="btn-text">🚀 Fix Sekarang dengan Rexx AI</span>
+        </button>
+
+        <!-- CHAT AI SECTION -->
+        <div class="chat-section">
+            <div class="chat-header">
+                <div class="avatar">R</div>
+                <div class="chat-title">
+                    Chat Rexx AI
+                    <small>AI yang menjelaskan error & proses perbaikan (hanya baca)</small>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="msg-avatar">R</div>
+                    <div class="msg-bubble">
+                        Halo! Aku <strong>Rexx AI</strong>. Upload ZIP base APK kamu dan tempel log error-nya, nanti aku kasih tau error-nya di mana lalu aku perbaiki.<br><br>
+                        <span style="color:var(--text-muted);font-size:13px;">Chat ini khusus untuk Rexx AI memberi penjelasan — kamu tidak perlu mengetik apa pun.</span>
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typingIndicator">
+                    <span class="dot-typing"></span>
+                    <span class="dot-typing"></span>
+                    <span class="dot-typing"></span>
+                    <span style="margin-left:8px;color:var(--text-muted);">Rexx AI sedang menganalisis...</span>
+                </div>
+            </div>
+
+            <!-- BOTTOM INFO -->
+            <div class="bottom-info">
+                <a href="#" class="bot-link" target="_blank">
+                    <span class="telegram-icon">🤖</span>
+                    Bot Build APK @memeayahhajak_bot
+                </a>
+                <div class="credit">
+                    Developer Web <a href="#">@rexnothuman</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER CREDIT -->
+    <div style="text-align:center;padding:24px 0 40px;color:var(--text-muted);font-size:13px;border-top:1px solid var(--border-color);margin-top:20px;">
+        © 2025 REXX FIX BUILD — Powered by Rexx AI 🤖
+    </div>
+</div>
+
+<!-- ========================================
+     JAVASCRIPT
+======================================== -->
+<script>
+    (function() {
+        'use strict';
+
+        // ---------- DOM REFS ----------
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const removeFile = document.getElementById('removeFile');
+        const logInput = document.getElementById('logInput');
+        const fixBtn = document.getElementById('fixBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        let selectedFile = null;
+
+        // ---------- FILE HANDLING ----------
+        function handleFile(file) {
+            if (!file) return;
+            if (!file.name.endsWith('.zip')) {
+                alert('⚠️ Hanya file .zip yang didukung!');
+                return;
+            }
+            selectedFile = file;
+            fileName.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+            fileInfo.classList.add('show');
+            uploadArea.style.borderColor = 'var(--accent-cyan)';
+            // Tambahkan pesan chat
+            addBotMessage('📦 File <span class="highlight-code">' + file.name + '</span> berhasil diupload. Sekarang tempel log error-nya ya!');
+        }
+
+        function removeFileHandler() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.remove('show');
+            uploadArea.style.borderColor = 'var(--border-color)';
+        }
+
+        // Upload via click
+        browseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Drag & Drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        removeFile.addEventListener('click', removeFileHandler);
+
+        // ---------- CHAT FUNCTIONS ----------
+        function addBotMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'message bot';
+            div.innerHTML = `
+                <div class="msg-avatar">R</div>
+                <div class="msg-bubble">${text}</div>
+            `;
+            chatMessages.insertBefore(div, typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'message user';
+            div.innerHTML = `
+                <div class="msg-avatar">👤</div>
+                <div class="msg-bubble">${text}</div>
+            `;
+            chatMessages.insertBefore(div, typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTyping() {
+            typingIndicator.classList.add('show');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.classList.remove('show');
+        }
+
+        // ---------- SIMULASI PROSES FIX ----------
+        function simulateFix() {
+            const log = logInput.value.trim();
+            if (!selectedFile) {
+                alert('⚠️ Upload file ZIP dulu!');
+                return;
+            }
+            if (!log) {
+                alert('⚠️ Tempel log error-nya!');
+                return;
+            }
+
+            // Disable button
+            fixBtn.disabled = true;
+            fixBtn.classList.add('loading');
+
+            // Tambah user message
+            addUserMessage('📤 Upload: ' + selectedFile.name + '<br>📋 Log: ' + log.slice(0, 60) + '...');
+
+            showTyping();
+
+            // Simulasi proses Rexx AI
+            setTimeout(() => {
+                hideTyping();
+                // Analisis sederhana berdasarkan log
+                let analysis = '🔍 Analisis error oleh Rexx AI:\n';
+                let fix = '✅ Perbaikan yang dilakukan Rexx AI:\n';
+
+                if (log.includes('compileDebugJavaWithJavac')) {
+                    analysis += '• Error pada kompilasi Java (compileDebugJavaWithJavac)\n';
+                    fix += '• Memperbaiki konfigurasi Gradle\n• Mengupdate dependency Java\n';
+                }
+                if (log.includes('resource')) {
+                    analysis += '• Error resource / asset tidak ditemukan\n';
+                    fix += '• Memperbaiki path resource\n• Mengatur ulang pubspec.yaml\n';
+                }
+                if (log.includes('plugin')) {
+                    analysis += '• Error plugin Flutter tidak kompatibel\n';
+                    fix += '• Mengupdate plugin ke versi terbaru\n• Menyesuaikan kode migrasi\n';
+                }
+                if (log.includes('gradle')) {
+                    analysis += '• Error pada build Gradle\n';
+                    fix += '• Memperbaiki build.gradle\n• Mengupdate SDK version\n';
+                }
+                if (log.includes('version')) {
+                    analysis += '• Error versi SDK / dependency\n';
+                    fix += '• Menyesuaikan versi SDK\n• Update pubspec.yaml\n';
+                }
+
+                if (!analysis.includes('•')) {
+                    analysis = '• Error tidak terdeteksi secara spesifik. Rexx AI melakukan perbaikan umum.\n';
+                    fix = '• Membersihkan cache build\n• Mengupdate semua dependency\n• Memperbaiki struktur project\n';
+                }
+
+                // Kirim hasil ke chat
+                addBotMessage(
+                    '📊 <b>Analisis Error oleh Rexx AI:</b><br>' +
+                    analysis.replace(/\n/g, '<br>') +
+                    '<br><b>🛠️ Perbaikan oleh Rexx AI:</b><br>' +
+                    fix.replace(/\n/g, '<br>') +
+                    '<br><span style="color:var(--accent-cyan);">✅ Proses perbaikan selesai! File ZIP siap di-download.</span>'
+                );
+
+                // Simulasi download
+                setTimeout(() => {
+                    addBotMessage('⬇️ <b>Download ZIP hasil perbaikan oleh Rexx AI:</b><br><a href="#" style="color:var(--accent-cyan);">📦 ' + selectedFile.name.replace('.zip', '_fixed.zip') + '</a>');
+                    fixBtn.disabled = false;
+                    fixBtn.classList.remove('loading');
+                }, 1200);
+
+            }, 2000 + Math.random() * 1500);
+        }
+
+        // ---------- EVENT LISTENER ----------
+        fixBtn.addEventListener('click', simulateFix);
+
+        // ---------- KEYBOARD SHORTCUT (Ctrl+Enter) ----------
+        logInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                simulateFix();
+            }
+        });
+
+        // ---------- INITIAL CHAT WELCOME (sudah ada di HTML) ----------
+
+        console.log('🚀 REXX FIX BUILD loaded!');
+        console.log('🤖 Powered by Rexx AI');
+        console.log('👨‍💻 Developer: @rexnothuman');
+
+    })();
+</script>
+
+</body>
+</html>
